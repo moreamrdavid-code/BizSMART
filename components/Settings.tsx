@@ -69,44 +69,10 @@ const Settings: React.FC<SettingsProps> = ({ config, onUpdateConfig }) => {
             </div>
           </div>
 
-          <div className="space-y-4 p-8 bg-slate-50 rounded-3xl border border-slate-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-black text-slate-900 text-sm uppercase tracking-tighter">{t.profitMethod}</h4>
-                <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Automatic vs Manual Profit Calculation</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFormData({...formData, useMarginEstimation: !formData.useMarginEstimation})}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                  formData.useMarginEstimation ? 'bg-blue-600' : 'bg-slate-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    formData.useMarginEstimation ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {formData.useMarginEstimation && (
-              <div className="pt-6 border-t border-slate-200 animate-in fade-in duration-300">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">{t.marginPercentage}</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={formData.targetProfitMargin}
-                    onChange={(e) => setFormData({...formData, targetProfitMargin: parseFloat(e.target.value) || 0})}
-                    className="w-full px-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none pr-12 font-black text-lg"
-                    min="0"
-                    max="100"
-                    required
-                  />
-                  <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xl">%</span>
-                </div>
-              </div>
-            )}
+          <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100">
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+               Business information and preferences are synced to the cloud.
+             </p>
           </div>
 
           <div className="pt-8 border-t border-slate-100 flex items-center justify-between">

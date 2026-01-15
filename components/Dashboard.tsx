@@ -15,9 +15,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const t = getTranslation(lang);
   const currency = config?.currency || '৳';
   
-  const targetMargin = (config?.targetProfitMargin || 0) / 100;
-  const useMargin = config?.useMarginEstimation ?? true;
-
   const stats = React.useMemo(() => {
     const totalSales = sales.reduce((acc, s) => acc + s.amount, 0);
     const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
@@ -30,18 +27,20 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         if (item) {
           // Profit = (Selling Price - Purchase Price) * Qty
           grossProfit += (item.sellingPrice - item.purchasePrice) * (sale.quantity || 1);
-        } else if (useMargin) {
-          grossProfit += (sale.amount * targetMargin);
+        } else {
+          // Manual entry or deleted item: treat amount as profit
+          grossProfit += sale.amount;
         }
-      } else if (useMargin) {
-        grossProfit += (sale.amount * targetMargin);
+      } else {
+        // Direct Sale: treat full amount as profit (no cost recorded)
+        grossProfit += sale.amount;
       }
     });
 
     const netProfit = grossProfit - totalExpenses;
     
     return { totalSales, totalExpenses, profit: netProfit };
-  }, [sales, expenses, inventory, targetMargin, useMargin]);
+  }, [sales, expenses, inventory]);
 
   const chartData = React.useMemo(() => {
     const last7Days = Array.from({ length: 7 }, (_, i) => {

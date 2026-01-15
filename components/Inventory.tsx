@@ -17,7 +17,27 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAddStockItem, onDele
   const [sku, setSku] = React.useState('');
   const [initialQuantity, setInitialQuantity] = React.useState('');
   const [purchasePrice, setPurchasePrice] = React.useState('');
+  const [profitPercentage, setProfitPercentage] = React.useState('');
   const [sellingPrice, setSellingPrice] = React.useState('');
+
+  const autoCalculateSellingPrice = (cost: string, percent: string) => {
+    const c = parseFloat(cost);
+    const p = parseFloat(percent);
+    if (!isNaN(c) && !isNaN(p)) {
+      const calculated = c + (c * (p / 100));
+      setSellingPrice(calculated.toFixed(2));
+    }
+  };
+
+  const handlePurchasePriceChange = (val: string) => {
+    setPurchasePrice(val);
+    autoCalculateSellingPrice(val, profitPercentage);
+  };
+
+  const handleProfitPercentChange = (val: string) => {
+    setProfitPercentage(val);
+    autoCalculateSellingPrice(purchasePrice, val);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +58,7 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAddStockItem, onDele
     setSku('');
     setInitialQuantity('');
     setPurchasePrice('');
+    setProfitPercentage('');
     setSellingPrice('');
   };
 
@@ -57,51 +78,70 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAddStockItem, onDele
               required
             />
           </div>
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.sku}</label>
-            <input
-              type="text"
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-              placeholder="SKU-101"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.sku}</label>
+              <input
+                type="text"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
+                placeholder="SKU-101"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.initialQty}</label>
+              <input
+                type="number"
+                value={initialQuantity}
+                onChange={(e) => setInitialQuantity(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
+                placeholder="100"
+                required
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.initialQty}</label>
+          
+          <div className="pt-4 border-t border-slate-100 mt-2">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.cost} ({currency})</label>
             <input
               type="number"
-              value={initialQuantity}
-              onChange={(e) => setInitialQuantity(e.target.value)}
+              step="0.01"
+              value={purchasePrice}
+              onChange={(e) => handlePurchasePriceChange(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-              placeholder="100"
+              placeholder="0.00"
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.cost} ({currency})</label>
-              <input
-                type="number"
-                step="0.01"
-                value={purchasePrice}
-                onChange={(e) => setPurchasePrice(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-                placeholder="5.00"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.price} ({currency})</label>
-              <input
-                type="number"
-                step="0.01"
-                value={sellingPrice}
-                onChange={(e) => setSellingPrice(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
-                placeholder="10.00"
-              />
-            </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+              {lang === 'bn' ? 'লাভের শতাংশ (%)' : 'Profit Percentage (%)'}
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={profitPercentage}
+              onChange={(e) => handleProfitPercentChange(e.target.value)}
+              className="w-full px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-indigo-600"
+              placeholder="20"
+            />
           </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.price} ({currency})</label>
+            <input
+              type="number"
+              step="0.01"
+              value={sellingPrice}
+              onChange={(e) => setSellingPrice(e.target.value)}
+              className="w-full px-4 py-4 bg-slate-900 border border-slate-800 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-black text-white text-lg"
+              placeholder="0.00"
+              required
+            />
+          </div>
+
           <button
             type="submit"
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-indigo-100"

@@ -15,13 +15,14 @@ export interface User {
   isAdmin?: boolean;
 }
 
+// Fixed: Added targetProfitMargin and useMarginEstimation properties to BusinessConfig
 export interface BusinessConfig {
   companyName: string;
   industry: string;
-  targetProfitMargin: number; // Percentage
-  useMarginEstimation: boolean; // Toggle for showing estimated profit
   currency: string;
   language: 'bn' | 'en';
+  targetProfitMargin?: number;
+  useMarginEstimation?: boolean;
 }
 
 export interface StockItem {

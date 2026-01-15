@@ -1,15 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
-import { BusinessData } from '../types';
-import { getBusinessInsights } from '../services/geminiService';
+import * as React from 'react';
+import { BusinessData } from '../types.ts';
+import { getBusinessInsights } from '../services/geminiService.ts';
 
 interface InsightsProps {
   data: BusinessData;
 }
 
 const Insights: React.FC<InsightsProps> = ({ data }) => {
-  const [insights, setInsights] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [insights, setInsights] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
 
   const fetchInsights = async () => {
     setLoading(true);
@@ -18,7 +18,7 @@ const Insights: React.FC<InsightsProps> = ({ data }) => {
     setLoading(false);
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (data.sales.length > 0) {
       fetchInsights();
     }
@@ -54,7 +54,6 @@ const Insights: React.FC<InsightsProps> = ({ data }) => {
           </div>
         ) : insights ? (
           <div className="prose prose-slate max-w-none">
-             {/* Render insights string - in a real app you'd use a markdown library like react-markdown */}
              {insights.split('\n').map((line, i) => (
                <p key={i} className={line.startsWith('#') ? 'text-xl font-bold mt-4' : 'text-slate-600'}>
                  {line}

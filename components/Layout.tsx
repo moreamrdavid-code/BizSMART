@@ -1,5 +1,5 @@
 
-import React from 'react';
+import * as React from 'react';
 import { ViewType } from '../types.ts';
 import { ICONS } from '../constants.tsx';
 import { getTranslation, Language } from '../translations.ts';

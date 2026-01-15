@@ -15,33 +15,27 @@ const Reports: React.FC<ReportsProps> = ({ data }) => {
   const reportRef = React.useRef<HTMLDivElement>(null);
   
   const currency = config?.currency || '৳';
-  const targetMargin = (config?.targetProfitMargin || 0) / 100;
-  const useMargin = config?.useMarginEstimation ?? true;
 
   const reportData = React.useMemo(() => {
     const totalSales = sales.reduce((acc, s) => acc + s.amount, 0);
     const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
     
-    let actualGrossProfit = 0;
-    let manualSalesTotal = 0;
+    let totalGrossProfit = 0;
 
     sales.forEach(sale => {
       if (sale.stockItemId) {
         const item = inventory.find(i => i.id === sale.stockItemId);
         if (item) {
-          actualGrossProfit += (item.sellingPrice - item.purchasePrice) * (sale.quantity || 1);
+          totalGrossProfit += (item.sellingPrice - item.purchasePrice) * (sale.quantity || 1);
         } else {
-          manualSalesTotal += sale.amount;
+          totalGrossProfit += sale.amount;
         }
       } else {
-        manualSalesTotal += sale.amount;
+        totalGrossProfit += sale.amount;
       }
     });
 
-    const estimatedGrossProfit = useMargin ? (manualSalesTotal * targetMargin) : 0;
-    const totalGrossProfit = actualGrossProfit + estimatedGrossProfit;
     const netProfit = totalGrossProfit - totalExpenses;
-    const shouldShowProfit = useMargin || actualGrossProfit > 0;
 
     const stockSummary = inventory.map(item => ({
       name: item.name,
@@ -50,8 +44,8 @@ const Reports: React.FC<ReportsProps> = ({ data }) => {
       potentialRevenue: item.currentQuantity * item.sellingPrice
     }));
 
-    return { totalSales, totalExpenses, netProfit, shouldShowProfit, stockSummary };
-  }, [sales, expenses, inventory, targetMargin, useMargin]);
+    return { totalSales, totalExpenses, netProfit, stockSummary };
+  }, [sales, expenses, inventory]);
 
   const handleDownloadPdf = async () => {
     if (!reportRef.current) return;
@@ -134,14 +128,12 @@ const Reports: React.FC<ReportsProps> = ({ data }) => {
                 <span className="text-slate-500 font-bold text-sm">{lang === 'bn' ? 'মোট ব্যবসায়িক ব্যয়' : 'Operating Expenses'}</span>
                 <span className="text-xl font-black text-rose-500">{currency}{reportData.totalExpenses.toLocaleString()}</span>
               </div>
-              {reportData.shouldShowProfit && (
-                <div className="flex justify-between items-center py-6 bg-slate-50 px-6 rounded-3xl mt-4">
-                  <span className="text-slate-900 font-black text-lg uppercase tracking-widest">{t.netProfit}</span>
-                  <span className={`text-3xl font-black ${reportData.netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {currency}{reportData.netProfit.toLocaleString()}
-                  </span>
-                </div>
-              )}
+              <div className="flex justify-between items-center py-6 bg-slate-50 px-6 rounded-3xl mt-4">
+                <span className="text-slate-900 font-black text-lg uppercase tracking-widest">{t.netProfit}</span>
+                <span className={`text-3xl font-black ${reportData.netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {currency}{reportData.netProfit.toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
 
