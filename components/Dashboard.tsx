@@ -10,17 +10,42 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ data }) => {
-  const { sales, expenses, config } = data;
+  const { sales, expenses, config, inventory } = data;
   const lang = config?.language || 'en';
   const t = getTranslation(lang);
   const currency = config?.currency || '৳';
+  
+  const targetMargin = (config?.targetProfitMargin || 0) / 100;
+  const useMargin = config?.useMarginEstimation ?? true;
 
   const stats = useMemo(() => {
     const totalSales = sales.reduce((acc, s) => acc + s.amount, 0);
     const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
-    const profit = totalSales - totalExpenses;
+    
+    // Calculate actual gross profit from inventory costs
+    let grossProfit = 0;
+    
+    sales.forEach(sale => {
+      if (sale.stockItemId) {
+        const item = inventory.find(i => i.id === sale.stockItemId);
+        if (item) {
+          // Profit = (Selling Price - Purchase Price) * Qty
+          grossProfit += (item.sellingPrice - item.purchasePrice) * (sale.quantity || 1);
+        } else {
+          // Fallback to margin estimation if item record is missing
+          if (useMargin) grossProfit += (sale.amount * targetMargin);
+        }
+      } else {
+        // Manual entries use margin estimation if enabled
+        if (useMargin) grossProfit += (sale.amount * targetMargin);
+      }
+    });
+
+    // Net Profit = Gross Profit (from sales) - Operating Expenses
+    const profit = grossProfit - totalExpenses;
+    
     return { totalSales, totalExpenses, profit };
-  }, [sales, expenses]);
+  }, [sales, expenses, inventory, targetMargin, useMargin]);
 
   // Aggregate sales by date for the chart
   const chartData = useMemo(() => {
