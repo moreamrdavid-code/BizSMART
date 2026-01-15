@@ -3,8 +3,6 @@ import { BusinessData, User, BusinessConfig } from '../types.ts';
 
 /**
  * CLOUD DATABASE CONFIGURATION - PANTRY CLOUD
- * Pantry is a reliable JSON storage service that requires a valid UUID.
- * Provided UUID: a1fda8ac-63ac-4b27-a992-dc2a6b16b3da
  */
 const PANTRY_ID = 'a1fda8ac-63ac-4b27-a992-dc2a6b16b3da'; 
 const API_BASE = `https://getpantry.cloud/apiv1/pantry/${PANTRY_ID}/basket/`;
@@ -30,7 +28,6 @@ export const storageService = {
       
       clearTimeout(id);
       
-      // Pantry returns 400 or 404 if the basket doesn't exist yet
       if (resp.status === 400 || resp.status === 404) return null;
       if (!resp.ok) throw new Error(`Pantry Fetch Error: ${resp.status}`);
       
@@ -46,7 +43,6 @@ export const storageService = {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), TIMEOUT);
       
-      // POST creates or completely replaces a basket in Pantry
       const resp = await fetch(`${API_BASE}${basketName}`, {
         method: 'POST',
         mode: 'cors',
@@ -71,14 +67,17 @@ export const storageService = {
 
   // --- Public Interface ---
 
-  getUsers: async (): Promise<any[]> => {
+  getUsers: async (): Promise<User[]> => {
     const registry = await storageService._fetchCloud(USERS_REGISTRY_BASKET);
-    // Pantry returns the object directly, we store it as { users: [...] }
     return (registry && Array.isArray(registry.users)) ? registry.users : [];
   },
 
   registerUser: async (username: string, password: string, initialConfig: BusinessConfig): Promise<boolean> => {
     const cleanUsername = username.trim().toLowerCase();
+    
+    // Prevent registering with reserved 'Admin' name
+    if (cleanUsername === 'admin') return false;
+
     const users = await storageService.getUsers();
     
     if (users.find(u => u.username.toLowerCase() === cleanUsername)) {
@@ -92,14 +91,12 @@ export const storageService = {
       lastLogin: new Date().toISOString() 
     };
     
-    // Save to global registry basket
     const registrySuccess = await storageService._saveCloud(USERS_REGISTRY_BASKET, { 
       users: [...users, newUser] 
     });
     
     if (!registrySuccess) return false;
 
-    // Initialize individual business data basket
     const initialData: BusinessData = {
       config: initialConfig,
       sales: [],
@@ -112,16 +109,35 @@ export const storageService = {
   },
 
   authenticate: async (username: string, password: string): Promise<User | null> => {
-    const cleanUsername = username.trim().toLowerCase();
+    const cleanUsername = username.trim();
+    
+    // Hardcoded Admin Access
+    if (cleanUsername === 'Admin' && password === '676') {
+      const adminUser: User = { 
+        username: 'Admin', 
+        lastLogin: new Date().toISOString(),
+        isAdmin: true 
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(adminUser));
+      return adminUser;
+    }
+
+    const lowerUsername = cleanUsername.toLowerCase();
     const users = await storageService.getUsers();
-    const user = users.find(u => u.username.toLowerCase() === cleanUsername && u.password === password);
+    const user = users.find(u => u.username.toLowerCase() === lowerUsername && u.password === password);
     
     if (user) {
       const { password: _, ...safeUser } = user;
       localStorage.setItem(SESSION_KEY, JSON.stringify(safeUser));
-      return safeUser;
+      return safeUser as User;
     }
     return null;
+  },
+
+  deleteUser: async (username: string): Promise<boolean> => {
+    const users = await storageService.getUsers();
+    const filtered = users.filter(u => u.username.toLowerCase() !== username.toLowerCase());
+    return storageService._saveCloud(USERS_REGISTRY_BASKET, { users: filtered });
   },
 
   logout: () => {

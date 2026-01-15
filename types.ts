@@ -12,6 +12,7 @@ export interface User {
   username: string;
   password?: string; // Only stored in registry
   lastLogin: string;
+  isAdmin?: boolean;
 }
 
 export interface BusinessConfig {

@@ -10,6 +10,7 @@ import ExpenseEntry from './components/ExpenseEntry.tsx';
 import Inventory from './components/Inventory.tsx';
 import Reports from './components/Reports.tsx';
 import Settings from './components/Settings.tsx';
+import AdminDashboard from './components/AdminDashboard.tsx';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = React.useState<User | null>(() => storageService.getSession());
@@ -24,7 +25,8 @@ const App: React.FC = () => {
 
   React.useEffect(() => {
     const initData = async () => {
-      if (currentUser) {
+      // Only load standard business data if it's NOT the admin
+      if (currentUser && !currentUser.isAdmin) {
         setIsInitializing(true);
         const userData = await storageService.loadUserData(currentUser.username);
         setData(userData);
@@ -92,6 +94,11 @@ const App: React.FC = () => {
   };
 
   if (!currentUser) return <Auth onLogin={setCurrentUser} />;
+
+  // Special routing for Admin
+  if (currentUser.isAdmin) {
+    return <AdminDashboard onLogout={handleLogout} />;
+  }
 
   if (isInitializing) {
     return (
