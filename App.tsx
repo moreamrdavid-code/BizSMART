@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { BusinessData, ViewType, User } from './types.ts';
+import * as React from 'react';
+import { BusinessData, ViewType, User, Sale } from './types.ts';
 import { storageService } from './services/storageService.ts';
 import Layout from './components/Layout.tsx';
 import Auth from './components/Auth.tsx';
@@ -12,17 +12,17 @@ import Reports from './components/Reports.tsx';
 import Settings from './components/Settings.tsx';
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(() => storageService.getSession());
-  const [data, setData] = useState<BusinessData>({
+  const [currentUser, setCurrentUser] = React.useState<User | null>(() => storageService.getSession());
+  const [data, setData] = React.useState<BusinessData>({
     config: null,
     sales: [],
     expenses: [],
     inventory: []
   });
-  const [activeView, setActiveView] = useState<ViewType>('dashboard');
-  const [isInitializing, setIsInitializing] = useState(false);
+  const [activeView, setActiveView] = React.useState<ViewType>('dashboard');
+  const [isInitializing, setIsInitializing] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const initData = async () => {
       if (currentUser) {
         setIsInitializing(true);
@@ -39,6 +39,51 @@ const App: React.FC = () => {
     if (currentUser) {
       await storageService.saveUserData(currentUser.username, newData);
     }
+  };
+
+  const handleAddSale = (sale: Sale) => {
+    let updatedInventory = [...data.inventory];
+    
+    if (sale.stockItemId) {
+      updatedInventory = updatedInventory.map(item => {
+        if (item.id === sale.stockItemId) {
+          return {
+            ...item,
+            currentQuantity: Math.max(0, item.currentQuantity - (sale.quantity || 0))
+          };
+        }
+        return item;
+      });
+    }
+
+    handleUpdateData({
+      ...data,
+      sales: [...data.sales, sale],
+      inventory: updatedInventory
+    });
+  };
+
+  const handleDeleteSale = (saleId: string) => {
+    const saleToDelete = data.sales.find(s => s.id === saleId);
+    let updatedInventory = [...data.inventory];
+
+    if (saleToDelete?.stockItemId) {
+      updatedInventory = updatedInventory.map(item => {
+        if (item.id === saleToDelete.stockItemId) {
+          return {
+            ...item,
+            currentQuantity: item.currentQuantity + (saleToDelete.quantity || 0)
+          };
+        }
+        return item;
+      });
+    }
+
+    handleUpdateData({
+      ...data,
+      sales: data.sales.filter(s => s.id !== saleId),
+      inventory: updatedInventory
+    });
   };
 
   const handleLogout = () => {
@@ -72,8 +117,8 @@ const App: React.FC = () => {
         <SalesEntry 
           sales={data.sales} 
           inventory={data.inventory}
-          onAddSale={(s) => handleUpdateData({...data, sales: [...data.sales, s]})} 
-          onDeleteSale={(id) => handleUpdateData({...data, sales: data.sales.filter(s => s.id !== id)})} 
+          onAddSale={handleAddSale} 
+          onDeleteSale={handleDeleteSale} 
           currency={data.config?.currency || '৳'}
           lang={lang}
         />

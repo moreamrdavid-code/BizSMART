@@ -1,7 +1,7 @@
 
-import React, { useMemo, useState, useRef } from 'react';
-import { BusinessData } from '../types';
-import { getTranslation } from '../translations';
+import * as React from 'react';
+import { BusinessData } from '../types.ts';
+import { getTranslation } from '../translations.ts';
 
 interface ReportsProps {
   data: BusinessData;
@@ -11,14 +11,14 @@ const Reports: React.FC<ReportsProps> = ({ data }) => {
   const { sales, expenses, config, inventory } = data;
   const lang = config?.language || 'en';
   const t = getTranslation(lang);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const reportRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = React.useState(false);
+  const reportRef = React.useRef<HTMLDivElement>(null);
   
   const currency = config?.currency || '৳';
   const targetMargin = (config?.targetProfitMargin || 0) / 100;
   const useMargin = config?.useMarginEstimation ?? true;
 
-  const reportData = useMemo(() => {
+  const reportData = React.useMemo(() => {
     const totalSales = sales.reduce((acc, s) => acc + s.amount, 0);
     const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
     
@@ -56,7 +56,6 @@ const Reports: React.FC<ReportsProps> = ({ data }) => {
   const handleDownloadPdf = async () => {
     if (!reportRef.current) return;
     
-    // Access html2pdf from global window scope as it's loaded via script tag for reliability
     const html2pdf = (window as any).html2pdf;
     
     if (!html2pdf) {
