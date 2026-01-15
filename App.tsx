@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { BusinessData, BusinessConfig, Sale, Expense, StockItem, ViewType, User } from './types.ts';
+import React, { useState, useEffect } from 'react';
+import { BusinessData, ViewType, User } from './types.ts';
 import { storageService } from './services/storageService.ts';
 import Layout from './components/Layout.tsx';
 import Auth from './components/Auth.tsx';
@@ -10,7 +10,6 @@ import ExpenseEntry from './components/ExpenseEntry.tsx';
 import Inventory from './components/Inventory.tsx';
 import Reports from './components/Reports.tsx';
 import Settings from './components/Settings.tsx';
-import { getTranslation, Language } from './translations.ts';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => storageService.getSession());
@@ -21,141 +20,44 @@ const App: React.FC = () => {
     inventory: []
   });
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
+  const [isInitializing, setIsInitializing] = useState(false);
 
-  // Load user-specific data whenever user changes
   useEffect(() => {
-    if (currentUser) {
-      const userData = storageService.loadUserData(currentUser.username);
-      setData(userData);
-    } else {
-      setData({ config: null, sales: [], expenses: [], inventory: [] });
-    }
+    const initData = async () => {
+      if (currentUser) {
+        setIsInitializing(true);
+        const userData = await storageService.loadUserData(currentUser.username);
+        setData(userData);
+        setIsInitializing(false);
+      }
+    };
+    initData();
   }, [currentUser]);
 
-  // Save user-specific data whenever data changes
-  useEffect(() => {
-    if (currentUser && data.config) {
-      storageService.saveUserData(currentUser.username, data);
+  const handleUpdateData = async (newData: BusinessData) => {
+    setData(newData);
+    if (currentUser) {
+      await storageService.saveUserData(currentUser.username, newData);
     }
-  }, [data, currentUser]);
-
-  const handleLogin = (user: User) => {
-    setCurrentUser(user);
   };
 
   const handleLogout = () => {
     storageService.logout();
     setCurrentUser(null);
-    setActiveView('dashboard');
   };
 
-  const handleUpdateConfig = useCallback((config: BusinessConfig) => {
-    setData(prev => ({ ...prev, config }));
-  }, []);
+  if (!currentUser) return <Auth onLogin={setCurrentUser} />;
 
-  const handleAddSale = useCallback((sale: Sale) => {
-    setData(prev => {
-      let updatedInventory = [...prev.inventory];
-      if (sale.stockItemId && sale.quantity) {
-        updatedInventory = updatedInventory.map(item => {
-          if (item.id === sale.stockItemId) {
-            return { ...item, currentQuantity: Math.max(0, item.currentQuantity - sale.quantity!) };
-          }
-          return item;
-        });
-      }
-      return { 
-        ...prev, 
-        sales: [...prev.sales, sale],
-        inventory: updatedInventory
-      };
-    });
-  }, []);
-
-  const handleDeleteSale = useCallback((id: string) => {
-    setData(prev => {
-      const saleToDelete = prev.sales.find(s => s.id === id);
-      let updatedInventory = [...prev.inventory];
-      if (saleToDelete?.stockItemId && saleToDelete?.quantity) {
-        updatedInventory = updatedInventory.map(item => {
-          if (item.id === saleToDelete.stockItemId) {
-            return { ...item, currentQuantity: item.currentQuantity + saleToDelete.quantity! };
-          }
-          return item;
-        });
-      }
-      return { 
-        ...prev, 
-        sales: prev.sales.filter(s => s.id !== id),
-        inventory: updatedInventory
-      };
-    });
-  }, []);
-
-  const handleAddExpense = useCallback((expense: Expense) => {
-    setData(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
-  }, []);
-
-  const handleDeleteExpense = useCallback((id: string) => {
-    setData(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== id) }));
-  }, []);
-
-  const handleAddStockItem = useCallback((item: StockItem) => {
-    setData(prev => ({ ...prev, inventory: [...prev.inventory, item] }));
-  }, []);
-
-  const handleDeleteStockItem = useCallback((id: string) => {
-    setData(prev => ({ ...prev, inventory: prev.inventory.filter(i => i.id !== id) }));
-  }, []);
-
-  // Show Auth if not logged in
-  if (!currentUser) {
-    return <Auth onLogin={handleLogin} />;
+  if (isInitializing) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-950 text-white space-y-4">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500">Syncing Cloud Database</p>
+      </div>
+    );
   }
 
   const lang = data.config?.language || 'en';
-
-  const renderView = () => {
-    switch (activeView) {
-      case 'dashboard': return <Dashboard data={data} />;
-      case 'sales': return (
-        <SalesEntry 
-          sales={data.sales} 
-          inventory={data.inventory}
-          onAddSale={handleAddSale} 
-          onDeleteSale={handleDeleteSale} 
-          currency={data.config?.currency || '৳'}
-          lang={lang}
-        />
-      );
-      case 'expenses': return (
-        <ExpenseEntry 
-          expenses={data.expenses} 
-          onAddExpense={handleAddExpense} 
-          onDeleteExpense={handleDeleteExpense} 
-          currency={data.config?.currency || '৳'}
-          lang={lang}
-        />
-      );
-      case 'inventory': return (
-        <Inventory 
-          inventory={data.inventory}
-          onAddStockItem={handleAddStockItem}
-          onDeleteStockItem={handleDeleteStockItem}
-          currency={data.config?.currency || '৳'}
-          lang={lang}
-        />
-      );
-      case 'reports': return <Reports data={data} />;
-      case 'settings': return (
-        <Settings 
-          config={data.config!} 
-          onUpdateConfig={handleUpdateConfig} 
-        />
-      );
-      default: return <Dashboard data={data} />;
-    }
-  };
 
   return (
     <Layout 
@@ -165,7 +67,39 @@ const App: React.FC = () => {
       lang={lang}
       onLogout={handleLogout}
     >
-      {renderView()}
+      {activeView === 'dashboard' && <Dashboard data={data} onUpdateData={handleUpdateData} />}
+      {activeView === 'sales' && (
+        <SalesEntry 
+          sales={data.sales} 
+          inventory={data.inventory}
+          onAddSale={(s) => handleUpdateData({...data, sales: [...data.sales, s]})} 
+          onDeleteSale={(id) => handleUpdateData({...data, sales: data.sales.filter(s => s.id !== id)})} 
+          currency={data.config?.currency || '৳'}
+          lang={lang}
+        />
+      )}
+      {activeView === 'expenses' && (
+        <ExpenseEntry 
+          expenses={data.expenses} 
+          onAddExpense={(e) => handleUpdateData({...data, expenses: [...data.expenses, e]})}
+          onDeleteExpense={(id) => handleUpdateData({...data, expenses: data.expenses.filter(e => e.id !== id)})}
+          currency={data.config?.currency || '৳'}
+          lang={lang}
+        />
+      )}
+      {activeView === 'inventory' && (
+        <Inventory 
+          inventory={data.inventory}
+          onAddStockItem={(i) => handleUpdateData({...data, inventory: [...data.inventory, i]})}
+          onDeleteStockItem={(id) => handleUpdateData({...data, inventory: data.inventory.filter(i => i.id !== id)})}
+          currency={data.config?.currency || '৳'}
+          lang={lang}
+        />
+      )}
+      {activeView === 'reports' && <Reports data={data} />}
+      {activeView === 'settings' && (
+        <Settings config={data.config!} onUpdateConfig={(c) => handleUpdateData({...data, config: c})} />
+      )}
     </Layout>
   );
 };

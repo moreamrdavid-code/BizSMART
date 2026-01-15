@@ -1,67 +1,143 @@
 
 import { BusinessData, User, BusinessConfig } from '../types.ts';
 
-const USERS_REGISTRY_KEY = 'bizpulse_users_registry';
-const CURRENT_SESSION_KEY = 'bizpulse_active_session';
-const DATA_PREFIX = 'bizpulse_data_';
+/**
+ * CLOUD DATABASE CONFIGURATION - PANTRY CLOUD
+ * Pantry is a reliable JSON storage service that requires a valid UUID.
+ * Provided UUID: a1fda8ac-63ac-4b27-a992-dc2a6b16b3da
+ */
+const PANTRY_ID = 'a1fda8ac-63ac-4b27-a992-dc2a6b16b3da'; 
+const API_BASE = `https://getpantry.cloud/apiv1/pantry/${PANTRY_ID}/basket/`;
+const USERS_REGISTRY_BASKET = 'global_users_v2';
+const DATA_PREFIX = 'biz_data_';
+const SESSION_KEY = 'bizsmart_active_session';
+const TIMEOUT = 15000;
 
 export const storageService = {
-  // User Management
-  registerUser: (username: string, password: string, initialConfig?: BusinessConfig): boolean => {
-    const users = storageService.getUsers();
-    if (users.find(u => u.username === username)) return false;
-    
-    users.push({ username, password, lastLogin: new Date().toISOString() });
-    localStorage.setItem(USERS_REGISTRY_KEY, JSON.stringify(users));
-
-    if (initialConfig) {
-      const initialData: BusinessData = {
-        config: initialConfig,
-        sales: [],
-        expenses: [],
-        inventory: []
-      };
-      storageService.saveUserData(username, initialData);
+  // --- Private Cloud Helpers ---
+  
+  _fetchCloud: async (basketName: string) => {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), TIMEOUT);
+      
+      const resp = await fetch(`${API_BASE}${basketName}`, { 
+        signal: controller.signal,
+        headers: { 
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      clearTimeout(id);
+      
+      // Pantry returns 400 or 404 if the basket doesn't exist yet
+      if (resp.status === 400 || resp.status === 404) return null;
+      if (!resp.ok) throw new Error(`Pantry Fetch Error: ${resp.status}`);
+      
+      return await resp.json();
+    } catch (e: any) {
+      console.error(`Pantry Fetch Failure [${basketName}]:`, e.message);
+      return null;
     }
+  },
+
+  _saveCloud: async (basketName: string, data: any) => {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), TIMEOUT);
+      
+      // POST creates or completely replaces a basket in Pantry
+      const resp = await fetch(`${API_BASE}${basketName}`, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data),
+        signal: controller.signal
+      });
+      
+      clearTimeout(id);
+      
+      if (!resp.ok) {
+        throw new Error(`Pantry Save Error: ${resp.status}`);
+      }
+      return true;
+    } catch (e: any) {
+      console.error(`Pantry Save Failure [${basketName}]:`, e.message);
+      return false;
+    }
+  },
+
+  // --- Public Interface ---
+
+  getUsers: async (): Promise<any[]> => {
+    const registry = await storageService._fetchCloud(USERS_REGISTRY_BASKET);
+    // Pantry returns the object directly, we store it as { users: [...] }
+    return (registry && Array.isArray(registry.users)) ? registry.users : [];
+  },
+
+  registerUser: async (username: string, password: string, initialConfig: BusinessConfig): Promise<boolean> => {
+    const cleanUsername = username.trim().toLowerCase();
+    const users = await storageService.getUsers();
+    
+    if (users.find(u => u.username.toLowerCase() === cleanUsername)) {
+      console.warn("User already exists");
+      return false;
+    }
+
+    const newUser = { 
+      username: cleanUsername, 
+      password, 
+      lastLogin: new Date().toISOString() 
+    };
+    
+    // Save to global registry basket
+    const registrySuccess = await storageService._saveCloud(USERS_REGISTRY_BASKET, { 
+      users: [...users, newUser] 
+    });
+    
+    if (!registrySuccess) return false;
+
+    // Initialize individual business data basket
+    const initialData: BusinessData = {
+      config: initialConfig,
+      sales: [],
+      expenses: [],
+      inventory: []
+    };
+    await storageService.saveUserData(cleanUsername, initialData);
     
     return true;
   },
 
-  authenticate: (username: string, password: string): User | null => {
-    const users = storageService.getUsers();
-    const user = users.find(u => u.username === username && u.password === password);
+  authenticate: async (username: string, password: string): Promise<User | null> => {
+    const cleanUsername = username.trim().toLowerCase();
+    const users = await storageService.getUsers();
+    const user = users.find(u => u.username.toLowerCase() === cleanUsername && u.password === password);
+    
     if (user) {
-      const { password, ...safeUser } = user;
-      localStorage.setItem(CURRENT_SESSION_KEY, JSON.stringify(safeUser));
+      const { password: _, ...safeUser } = user;
+      localStorage.setItem(SESSION_KEY, JSON.stringify(safeUser));
       return safeUser;
     }
     return null;
   },
 
   logout: () => {
-    localStorage.removeItem(CURRENT_SESSION_KEY);
+    localStorage.removeItem(SESSION_KEY);
   },
 
   getSession: (): User | null => {
-    const saved = localStorage.getItem(CURRENT_SESSION_KEY);
+    const saved = localStorage.getItem(SESSION_KEY);
     return saved ? JSON.parse(saved) : null;
   },
 
-  getUsers: (): any[] => {
-    const saved = localStorage.getItem(USERS_REGISTRY_KEY);
-    return saved ? JSON.parse(saved) : [];
-  },
-
-  // Business Data Management (Partitioned by Username)
-  loadUserData: (username: string): BusinessData => {
-    const saved = localStorage.getItem(`${DATA_PREFIX}${username}`);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse saved data', e);
-      }
-    }
+  loadUserData: async (username: string): Promise<BusinessData> => {
+    const cleanUsername = username.trim().toLowerCase();
+    const data = await storageService._fetchCloud(`${DATA_PREFIX}${cleanUsername}`);
+    if (data) return data;
+    
     return {
       config: null,
       sales: [],
@@ -70,7 +146,8 @@ export const storageService = {
     };
   },
 
-  saveUserData: (username: string, data: BusinessData) => {
-    localStorage.setItem(`${DATA_PREFIX}${username}`, JSON.stringify(data));
+  saveUserData: async (username: string, data: BusinessData) => {
+    const cleanUsername = username.trim().toLowerCase();
+    return storageService._saveCloud(`${DATA_PREFIX}${cleanUsername}`, data);
   }
 };
