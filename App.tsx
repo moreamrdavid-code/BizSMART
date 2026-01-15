@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BusinessData, BusinessConfig, Sale, Expense, StockItem, ViewType, User } from './types';
-import { storageService } from './services/storageService';
-import Layout from './components/Layout';
-import Auth from './components/Auth';
-import Dashboard from './components/Dashboard';
-import SalesEntry from './components/SalesEntry';
-import ExpenseEntry from './components/ExpenseEntry';
-import Inventory from './components/Inventory';
-import Reports from './components/Reports';
-import Settings from './components/Settings';
-import { getTranslation, Language } from './translations';
+import { BusinessData, BusinessConfig, Sale, Expense, StockItem, ViewType, User } from './types.ts';
+import { storageService } from './services/storageService.ts';
+import Layout from './components/Layout.tsx';
+import Auth from './components/Auth.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import SalesEntry from './components/SalesEntry.tsx';
+import ExpenseEntry from './components/ExpenseEntry.tsx';
+import Inventory from './components/Inventory.tsx';
+import Reports from './components/Reports.tsx';
+import Settings from './components/Settings.tsx';
+import { getTranslation, Language } from './translations.ts';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => storageService.getSession());

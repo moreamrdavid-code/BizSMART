@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { ViewType } from '../types';
-import { ICONS } from '../constants';
-import { getTranslation, Language } from '../translations';
-import { storageService } from '../services/storageService';
+import { ViewType } from '../types.ts';
+import { ICONS } from '../constants.tsx';
+import { getTranslation, Language } from '../translations.ts';
+import { storageService } from '../services/storageService.ts';
 
 interface LayoutProps {
   children: React.ReactNode;

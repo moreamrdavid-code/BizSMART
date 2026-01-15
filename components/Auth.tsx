@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
-import { storageService } from '../services/storageService';
-import { User, BusinessConfig } from '../types';
-// Language type is defined and exported from translations.ts
-import { getTranslation, Language } from '../translations';
+import { storageService } from '../services/storageService.ts';
+import { User, BusinessConfig } from '../types.ts';
+import { getTranslation, Language } from '../translations.ts';
 
 interface AuthProps {
   onLogin: (user: User) => void;

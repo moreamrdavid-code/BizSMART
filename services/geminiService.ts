@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { BusinessData } from "../types";
+import { BusinessData } from "../types.ts";
 
 export const getBusinessInsights = async (data: BusinessData): Promise<string> => {
   // Always use process.env.API_KEY directly as per @google/genai guidelines

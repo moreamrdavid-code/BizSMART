@@ -1,5 +1,5 @@
 
-import { BusinessData, User, BusinessConfig } from '../types';
+import { BusinessData, User, BusinessConfig } from '../types.ts';
 
 const USERS_REGISTRY_KEY = 'bizpulse_users_registry';
 const CURRENT_SESSION_KEY = 'bizpulse_active_session';
