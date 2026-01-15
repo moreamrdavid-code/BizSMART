@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
-import { StockItem } from '../types';
-import { getTranslation, Language } from '../translations';
+import * as React from 'react';
+import { StockItem } from '../types.ts';
+import { getTranslation, Language } from '../translations.ts';
 
 interface InventoryProps {
   inventory: StockItem[];
@@ -13,11 +13,11 @@ interface InventoryProps {
 
 const Inventory: React.FC<InventoryProps> = ({ inventory, onAddStockItem, onDeleteStockItem, currency, lang }) => {
   const t = getTranslation(lang);
-  const [name, setName] = useState('');
-  const [sku, setSku] = useState('');
-  const [initialQuantity, setInitialQuantity] = useState('');
-  const [purchasePrice, setPurchasePrice] = useState('');
-  const [sellingPrice, setSellingPrice] = useState('');
+  const [name, setName] = React.useState('');
+  const [sku, setSku] = React.useState('');
+  const [initialQuantity, setInitialQuantity] = React.useState('');
+  const [purchasePrice, setPurchasePrice] = React.useState('');
+  const [sellingPrice, setSellingPrice] = React.useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
-import { Expense, ExpenseType } from '../types';
-import { getTranslation, Language } from '../translations';
+import * as React from 'react';
+import { Expense, ExpenseType } from '../types.ts';
+import { getTranslation, Language } from '../translations.ts';
 
 interface ExpenseEntryProps {
   expenses: Expense[];
@@ -13,10 +13,10 @@ interface ExpenseEntryProps {
 
 const ExpenseEntry: React.FC<ExpenseEntryProps> = ({ expenses, onAddExpense, onDeleteExpense, currency, lang }) => {
   const t = getTranslation(lang);
-  const [amount, setAmount] = useState('');
-  const [type, setType] = useState<ExpenseType>(ExpenseType.OTHER);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [description, setDescription] = useState('');
+  const [amount, setAmount] = React.useState('');
+  const [type, setType] = React.useState<ExpenseType>(ExpenseType.OTHER);
+  const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [description, setDescription] = React.useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import * as React from 'react';
 import { storageService } from '../services/storageService.ts';
 import { User, BusinessConfig } from '../types.ts';
 import { getTranslation, Language } from '../translations.ts';
@@ -9,15 +9,15 @@ interface AuthProps {
 }
 
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [lang, setLang] = useState<Language>('bn');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [industry, setIndustry] = useState('Retail');
+  const [isLogin, setIsLogin] = React.useState(true);
+  const [lang, setLang] = React.useState<Language>('bn');
+  const [username, setUsername] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [companyName, setCompanyName] = React.useState('');
+  const [industry, setIndustry] = React.useState('Retail');
   
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
 
   const t = getTranslation(lang);
 
@@ -69,7 +69,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-2">Cloud Business Management Portal</p>
         </div>
 
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl animate-in zoom-in-95 duration-500">
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl animate-in zoom-in-95 duration-500 relative overflow-hidden">
           <div className="flex justify-center mb-6 space-x-2">
             <button onClick={() => setLang('bn')} className={`px-4 py-1.5 rounded-full text-[10px] font-black transition-all ${lang === 'bn' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>বাংলা</button>
             <button onClick={() => setLang('en')} className={`px-4 py-1.5 rounded-full text-[10px] font-black transition-all ${lang === 'en' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>ENGLISH</button>
@@ -122,16 +122,30 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
             {error && <p className="text-rose-500 text-[10px] font-black uppercase text-center">{error}</p>}
 
-            <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all uppercase text-xs tracking-widest flex items-center justify-center space-x-3">
+            <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all uppercase text-xs tracking-widest flex items-center justify-center space-y-0 space-x-3">
               {loading && <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>}
               <span>{loading ? 'Connecting...' : (isLogin ? t.enterDashboard : t.createAccount)}</span>
             </button>
           </form>
 
-          <p className="mt-6 text-[10px] font-bold text-slate-400 text-center uppercase tracking-widest">
-            {isLogin ? "Securing your business data" : "Start your online business journey"}
-          </p>
+          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+            <button 
+              onClick={() => {
+                setIsLogin(true);
+                setUsername('Admin');
+                setPassword('');
+                setError(null);
+              }}
+              className="text-[9px] font-black text-slate-300 hover:text-blue-500 uppercase tracking-[0.2em] transition-colors"
+            >
+              System Administrator Access
+            </button>
+          </div>
         </div>
+        
+        <p className="mt-6 text-[10px] font-bold text-slate-500 text-center uppercase tracking-widest">
+          {isLogin ? "Securing your business data" : "Start your online business journey"}
+        </p>
       </div>
     </div>
   );

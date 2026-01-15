@@ -1,8 +1,8 @@
 
-import React, { useMemo } from 'react';
+import * as React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { BusinessData } from '../types';
-import { getTranslation } from '../translations';
+import { BusinessData } from '../types.ts';
+import { getTranslation } from '../translations.ts';
 
 interface DashboardProps {
   data: BusinessData;
@@ -18,11 +18,10 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const targetMargin = (config?.targetProfitMargin || 0) / 100;
   const useMargin = config?.useMarginEstimation ?? true;
 
-  const stats = useMemo(() => {
+  const stats = React.useMemo(() => {
     const totalSales = sales.reduce((acc, s) => acc + s.amount, 0);
     const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
     
-    // Calculate actual gross profit from inventory costs
     let grossProfit = 0;
     
     sales.forEach(sale => {
@@ -31,24 +30,20 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         if (item) {
           // Profit = (Selling Price - Purchase Price) * Qty
           grossProfit += (item.sellingPrice - item.purchasePrice) * (sale.quantity || 1);
-        } else {
-          // Fallback to margin estimation if item record is missing
-          if (useMargin) grossProfit += (sale.amount * targetMargin);
+        } else if (useMargin) {
+          grossProfit += (sale.amount * targetMargin);
         }
-      } else {
-        // Manual entries use margin estimation if enabled
-        if (useMargin) grossProfit += (sale.amount * targetMargin);
+      } else if (useMargin) {
+        grossProfit += (sale.amount * targetMargin);
       }
     });
 
-    // Net Profit = Gross Profit (from sales) - Operating Expenses
-    const profit = grossProfit - totalExpenses;
+    const netProfit = grossProfit - totalExpenses;
     
-    return { totalSales, totalExpenses, profit };
+    return { totalSales, totalExpenses, profit: netProfit };
   }, [sales, expenses, inventory, targetMargin, useMargin]);
 
-  // Aggregate sales by date for the chart
-  const chartData = useMemo(() => {
+  const chartData = React.useMemo(() => {
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
@@ -65,18 +60,16 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Welcome Header */}
       <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
         <div className="relative z-10">
           <h2 className="text-3xl font-black tracking-tight">{t.welcome}, {config?.companyName}</h2>
           <p className="text-slate-400 mt-2 font-medium">{t.setupDash}</p>
         </div>
-        <div className="absolute -right-10 -bottom-10 opacity-10">
+        <div className="absolute -right-10 -bottom-10 opacity-10 text-white">
           <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm transition-all hover:shadow-md">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.totalSales}</p>
@@ -94,7 +87,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         </div>
       </div>
 
-      {/* Performance Chart */}
       <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
         <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-8">{t.dailySales}</h3>
         <div className="h-[350px] w-full">

@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
-import { BusinessConfig } from '../types';
-import { getTranslation } from '../translations';
+import * as React from 'react';
+import { BusinessConfig } from '../types.ts';
+import { getTranslation } from '../translations.ts';
 
 interface SettingsProps {
   config: BusinessConfig;
@@ -9,7 +9,7 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ config, onUpdateConfig }) => {
-  const [formData, setFormData] = useState<BusinessConfig>(config);
+  const [formData, setFormData] = React.useState<BusinessConfig>(config);
   const t = getTranslation(formData.language || 'en');
 
   const handleSubmit = (e: React.FormEvent) => {

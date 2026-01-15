@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
-import { Sale, StockItem } from '../types';
-import { getTranslation, Language } from '../translations';
+import * as React from 'react';
+import { Sale, StockItem } from '../types.ts';
+import { getTranslation, Language } from '../translations.ts';
 
 interface SalesEntryProps {
   sales: Sale[];
@@ -14,12 +14,12 @@ interface SalesEntryProps {
 
 const SalesEntry: React.FC<SalesEntryProps> = ({ sales, inventory, onAddSale, onDeleteSale, currency, lang }) => {
   const t = getTranslation(lang);
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [note, setNote] = useState('');
-  const [stockItemId, setStockItemId] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [error, setError] = useState<string | null>(null);
+  const [amount, setAmount] = React.useState('');
+  const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [note, setNote] = React.useState('');
+  const [stockItemId, setStockItemId] = React.useState('');
+  const [quantity, setQuantity] = React.useState('1');
+  const [error, setError] = React.useState<string | null>(null);
 
   const selectedItem = inventory.find(i => i.id === stockItemId);
 
