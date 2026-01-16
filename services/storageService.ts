@@ -3,13 +3,16 @@ import { BusinessData, User, BusinessConfig } from '../types.ts';
 
 /**
  * CLOUD DATABASE CONFIGURATION - PANTRY CLOUD
+ * Enhanced with LocalStorage fallback for high reliability.
  */
 const PANTRY_ID = 'a1fda8ac-63ac-4b27-a992-dc2a6b16b3da'; 
 const API_BASE = `https://getpantry.cloud/apiv1/pantry/${PANTRY_ID}/basket/`;
 const USERS_REGISTRY_BASKET = 'global_users_v2';
 const DATA_PREFIX = 'biz_data_';
 const SESSION_KEY = 'bizsmart_active_session';
-const TIMEOUT = 15000;
+const LOCAL_DATA_PREFIX = 'local_biz_data_';
+const LOCAL_USERS_KEY = 'local_users_registry';
+const TIMEOUT = 8000; // Reduced timeout for snappier fallback
 
 export const storageService = {
   // --- Private Cloud Helpers ---
@@ -21,19 +24,17 @@ export const storageService = {
       
       const resp = await fetch(`${API_BASE}${basketName}`, { 
         signal: controller.signal,
-        headers: { 
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       });
       
       clearTimeout(id);
       
       if (resp.status === 400 || resp.status === 404) return null;
-      if (!resp.ok) throw new Error(`Pantry Fetch Error: ${resp.status}`);
+      if (!resp.ok) throw new Error(`Pantry status: ${resp.status}`);
       
       return await resp.json();
     } catch (e: any) {
-      console.error(`Pantry Fetch Failure [${basketName}]:`, e.message);
+      console.warn(`Cloud fetch failed [${basketName}], using local fallback.`, e.message);
       return null;
     }
   },
@@ -45,22 +46,15 @@ export const storageService = {
       
       const resp = await fetch(`${API_BASE}${basketName}`, {
         method: 'POST',
-        mode: 'cors',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
         signal: controller.signal
       });
       
       clearTimeout(id);
-      
-      if (!resp.ok) {
-        throw new Error(`Pantry Save Error: ${resp.status}`);
-      }
-      return true;
+      return resp.ok;
     } catch (e: any) {
-      console.error(`Pantry Save Failure [${basketName}]:`, e.message);
+      console.warn(`Cloud save failed [${basketName}], cached locally.`, e.message);
       return false;
     }
   },
@@ -68,22 +62,25 @@ export const storageService = {
   // --- Public Interface ---
 
   getUsers: async (): Promise<User[]> => {
+    // Attempt cloud first
     const registry = await storageService._fetchCloud(USERS_REGISTRY_BASKET);
-    return (registry && Array.isArray(registry.users)) ? registry.users : [];
+    if (registry && Array.isArray(registry.users)) {
+      // Sync local cache
+      localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(registry.users));
+      return registry.users;
+    }
+    
+    // Fallback to local
+    const local = localStorage.getItem(LOCAL_USERS_KEY);
+    return local ? JSON.parse(local) : [];
   },
 
   registerUser: async (username: string, password: string, initialConfig: BusinessConfig): Promise<boolean> => {
     const cleanUsername = username.trim().toLowerCase();
-    
-    // Prevent registering with reserved 'Admin' name
     if (cleanUsername === 'admin') return false;
 
     const users = await storageService.getUsers();
-    
-    if (users.find(u => u.username.toLowerCase() === cleanUsername)) {
-      console.warn("User already exists");
-      return false;
-    }
+    if (users.find(u => u.username.toLowerCase() === cleanUsername)) return false;
 
     const newUser = { 
       username: cleanUsername, 
@@ -91,11 +88,13 @@ export const storageService = {
       lastLogin: new Date().toISOString() 
     };
     
-    const registrySuccess = await storageService._saveCloud(USERS_REGISTRY_BASKET, { 
-      users: [...users, newUser] 
-    });
+    const updatedUsers = [...users, newUser];
     
-    if (!registrySuccess) return false;
+    // Save locally first for immediate feedback
+    localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(updatedUsers));
+    
+    // Attempt cloud sync
+    await storageService._saveCloud(USERS_REGISTRY_BASKET, { users: updatedUsers });
 
     const initialData: BusinessData = {
       config: initialConfig,
@@ -103,15 +102,14 @@ export const storageService = {
       expenses: [],
       inventory: []
     };
-    await storageService.saveUserData(cleanUsername, initialData);
     
+    await storageService.saveUserData(cleanUsername, initialData);
     return true;
   },
 
   authenticate: async (username: string, password: string): Promise<User | null> => {
     const cleanUsername = username.trim();
     
-    // Hardcoded Admin Access
     if (cleanUsername === 'Admin' && password === '676') {
       const adminUser: User = { 
         username: 'Admin', 
@@ -137,6 +135,8 @@ export const storageService = {
   deleteUser: async (username: string): Promise<boolean> => {
     const users = await storageService.getUsers();
     const filtered = users.filter(u => u.username.toLowerCase() !== username.toLowerCase());
+    
+    localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(filtered));
     return storageService._saveCloud(USERS_REGISTRY_BASKET, { users: filtered });
   },
 
@@ -151,8 +151,18 @@ export const storageService = {
 
   loadUserData: async (username: string): Promise<BusinessData> => {
     const cleanUsername = username.trim().toLowerCase();
-    const data = await storageService._fetchCloud(`${DATA_PREFIX}${cleanUsername}`);
-    if (data) return data;
+    
+    // Attempt cloud
+    const cloudData = await storageService._fetchCloud(`${DATA_PREFIX}${cleanUsername}`);
+    if (cloudData) {
+      // Sync local cache
+      localStorage.setItem(`${LOCAL_DATA_PREFIX}${cleanUsername}`, JSON.stringify(cloudData));
+      return cloudData;
+    }
+    
+    // Fallback to local cache
+    const local = localStorage.getItem(`${LOCAL_DATA_PREFIX}${cleanUsername}`);
+    if (local) return JSON.parse(local);
     
     return {
       config: null,
@@ -164,6 +174,11 @@ export const storageService = {
 
   saveUserData: async (username: string, data: BusinessData) => {
     const cleanUsername = username.trim().toLowerCase();
+    
+    // Always update local storage first (instant durability)
+    localStorage.setItem(`${LOCAL_DATA_PREFIX}${cleanUsername}`, JSON.stringify(data));
+    
+    // Sync to cloud in background
     return storageService._saveCloud(`${DATA_PREFIX}${cleanUsername}`, data);
   }
 };

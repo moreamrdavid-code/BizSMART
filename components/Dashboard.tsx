@@ -25,14 +25,11 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       if (sale.stockItemId) {
         const item = inventory.find(i => i.id === sale.stockItemId);
         if (item) {
-          // Profit = (Selling Price - Purchase Price) * Qty
           grossProfit += (item.sellingPrice - item.purchasePrice) * (sale.quantity || 1);
         } else {
-          // Manual entry or deleted item: treat amount as profit
           grossProfit += sale.amount;
         }
       } else {
-        // Direct Sale: treat full amount as profit (no cost recorded)
         grossProfit += sale.amount;
       }
     });
@@ -53,44 +50,54 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       const daySales = sales
         .filter(s => s.date === date)
         .reduce((acc, s) => acc + s.amount, 0);
-      return { date, sales: daySales };
+      // Compact date for mobile
+      const label = date.split('-').slice(1).join('/');
+      return { date: label, sales: daySales };
     });
   }, [sales]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
+      {/* Welcome Banner */}
+      <div className="bg-slate-900 p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
         <div className="relative z-10">
-          <h2 className="text-3xl font-black tracking-tight">{t.welcome}, {config?.companyName}</h2>
-          <p className="text-slate-400 mt-2 font-medium">{t.setupDash}</p>
+          <h2 className="text-xl md:text-3xl font-black tracking-tight leading-tight">
+            {t.welcome},<br className="md:hidden" /> <span className="text-blue-400">{config?.companyName}</span>
+          </h2>
+          <p className="text-slate-400 mt-2 font-medium text-xs md:text-base">{t.setupDash}</p>
         </div>
-        <div className="absolute -right-10 -bottom-10 opacity-10 text-white">
+        <div className="absolute -right-10 -bottom-10 opacity-10 text-white select-none pointer-events-none">
           <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm transition-all hover:shadow-md">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.totalSales}</p>
-          <h3 className="text-3xl font-black text-slate-900">{currency}{stats.totalSales.toLocaleString()}</h3>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-blue-100 group">
+          <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 md:mb-2 group-hover:text-blue-500 transition-colors">{t.totalSales}</p>
+          <h3 className="text-2xl md:text-3xl font-black text-slate-900">{currency}{stats.totalSales.toLocaleString()}</h3>
         </div>
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm transition-all hover:shadow-md">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.totalExpenses}</p>
-          <h3 className="text-3xl font-black text-rose-500">{currency}{stats.totalExpenses.toLocaleString()}</h3>
+        <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-rose-100 group">
+          <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 md:mb-2 group-hover:text-rose-500 transition-colors">{t.totalExpenses}</p>
+          <h3 className="text-2xl md:text-3xl font-black text-rose-500">{currency}{stats.totalExpenses.toLocaleString()}</h3>
         </div>
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm transition-all hover:shadow-md">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.netProfit}</p>
-          <h3 className={`text-3xl font-black ${stats.profit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+        <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-emerald-100 group">
+          <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 md:mb-2 group-hover:text-emerald-500 transition-colors">{t.netProfit}</p>
+          <h3 className={`text-2xl md:text-3xl font-black ${stats.profit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
             {currency}{stats.profit.toLocaleString()}
           </h3>
         </div>
       </div>
 
-      <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
-        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-8">{t.dailySales}</h3>
-        <div className="h-[350px] w-full">
+      {/* Sales Chart */}
+      <div className="bg-white p-5 md:p-10 rounded-3xl md:rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between mb-6 md:mb-8">
+          <h3 className="text-[10px] md:text-sm font-black text-slate-800 uppercase tracking-widest">{t.dailySales}</h3>
+          <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase">Last 7 Days</span>
+        </div>
+        <div className="h-[250px] md:h-[350px] w-full -ml-4 md:-ml-6">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
@@ -102,19 +109,20 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                 dataKey="date" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
                 dy={10}
               />
               <YAxis 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
+                width={40}
               />
               <Tooltip 
-                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                labelStyle={{ fontWeight: 800, marginBottom: '4px' }}
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', padding: '12px' }}
+                labelStyle={{ fontWeight: 800, marginBottom: '4px', color: '#1e293b' }}
               />
-              <Area type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
+              <Area type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
