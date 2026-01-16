@@ -15,6 +15,7 @@ interface SalesEntryProps {
 const SalesEntry: React.FC<SalesEntryProps> = ({ sales, inventory, onAddSale, onDeleteSale, currency, lang }) => {
   const t = getTranslation(lang);
   const [amount, setAmount] = React.useState('');
+  const [billNumber, setBillNumber] = React.useState('');
   const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [note, setNote] = React.useState('');
   const [stockItemId, setStockItemId] = React.useState('');
@@ -59,6 +60,7 @@ const SalesEntry: React.FC<SalesEntryProps> = ({ sales, inventory, onAddSale, on
     const newSale: Sale = {
       id: crypto.randomUUID(),
       amount: parseFloat(amount),
+      billNumber,
       date,
       note,
       stockItemId: stockItemId || undefined,
@@ -67,6 +69,7 @@ const SalesEntry: React.FC<SalesEntryProps> = ({ sales, inventory, onAddSale, on
     
     onAddSale(newSale);
     setAmount('');
+    setBillNumber('');
     setNote('');
     setStockItemId('');
     setQuantity('1');
@@ -126,6 +129,17 @@ const SalesEntry: React.FC<SalesEntryProps> = ({ sales, inventory, onAddSale, on
           )}
 
           <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.billNumber}</label>
+            <input
+              type="text"
+              value={billNumber}
+              onChange={(e) => setBillNumber(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-sm"
+              placeholder="#BILL-1234"
+            />
+          </div>
+
+          <div>
             <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.amount} ({currency})</label>
             <input
               type="number"
@@ -164,10 +178,11 @@ const SalesEntry: React.FC<SalesEntryProps> = ({ sales, inventory, onAddSale, on
           <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-3 py-1 rounded-full uppercase">{sales.length}</span>
         </div>
         <div className="overflow-x-auto flex-1 scrollbar-hide">
-          <table className="w-full text-left min-w-[500px]">
+          <table className="w-full text-left min-w-[600px]">
             <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-tighter">
               <tr>
                 <th className="px-6 md:px-8 py-4">{t.date}</th>
+                <th className="px-6 md:px-8 py-4">{t.billNumber}</th>
                 <th className="px-6 md:px-8 py-4">{lang === 'bn' ? 'পণ্য' : 'Product'}</th>
                 <th className="px-4 py-4 text-center">{lang === 'bn' ? 'সংখ্যা' : 'Qty'}</th>
                 <th className="px-6 md:px-8 py-4 text-right">{t.amount}</th>
@@ -177,7 +192,7 @@ const SalesEntry: React.FC<SalesEntryProps> = ({ sales, inventory, onAddSale, on
             <tbody className="divide-y divide-slate-100">
               {sales.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-12 text-center text-slate-300 font-bold uppercase text-[10px]">No records found.</td>
+                  <td colSpan={6} className="px-8 py-12 text-center text-slate-300 font-bold uppercase text-[10px]">No records found.</td>
                 </tr>
               ) : (
                 [...sales].sort((a, b) => b.date.localeCompare(a.date)).map((sale) => {
@@ -185,6 +200,11 @@ const SalesEntry: React.FC<SalesEntryProps> = ({ sales, inventory, onAddSale, on
                   return (
                     <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 md:px-8 py-5 text-[10px] font-bold text-slate-400 whitespace-nowrap">{sale.date}</td>
+                      <td className="px-6 md:px-8 py-5">
+                        <span className="text-[11px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                          {sale.billNumber || 'N/A'}
+                        </span>
+                      </td>
                       <td className="px-6 md:px-8 py-5">
                          <p className="text-sm font-black text-slate-800 leading-none mb-1">{item ? item.name : 'Direct Sale'}</p>
                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Transaction ID: {sale.id.slice(0, 8)}</p>

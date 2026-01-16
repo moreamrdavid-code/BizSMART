@@ -40,6 +40,7 @@ export interface Sale {
   amount: number;
   date: string;
   note?: string;
+  billNumber?: string;
   stockItemId?: string;
   quantity?: number;
 }
