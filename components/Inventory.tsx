@@ -109,7 +109,9 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAddStockItem, onDele
           </div>
           
           <div className="pt-4 border-t border-slate-100 mt-2">
-            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.cost} ({currency})</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+              {t.cost} ({currency}) <span className="text-slate-300 font-normal">{lang === 'bn' ? '(ঐচ্ছিক)' : '(Optional)'}</span>
+            </label>
             <input
               type="number"
               step="0.01"
@@ -117,7 +119,6 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAddStockItem, onDele
               onChange={(e) => handlePurchasePriceChange(e.target.value)}
               className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
               placeholder="0.00"
-              required
             />
           </div>
 
@@ -136,7 +137,9 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAddStockItem, onDele
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t.price} ({currency})</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+              {t.price} ({currency}) <span className="text-slate-300 font-normal">{lang === 'bn' ? '(ঐচ্ছিক)' : '(Optional)'}</span>
+            </label>
             <input
               type="number"
               step="0.01"
@@ -144,7 +147,6 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAddStockItem, onDele
               onChange={(e) => setSellingPrice(e.target.value)}
               className="w-full px-4 py-4 bg-slate-900 border border-slate-800 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-black text-white text-xl"
               placeholder="0.00"
-              required
             />
           </div>
 
