@@ -1,6 +1,6 @@
 
 import * as React from 'react';
-import { BusinessData, ViewType, User, Sale } from './types.ts';
+import { BusinessData, ViewType, User, Sale, Customer, Payment, StockItem } from './types.ts';
 import { storageService } from './services/storageService.ts';
 import Layout from './components/Layout.tsx';
 import Auth from './components/Auth.tsx';
@@ -11,6 +11,8 @@ import Inventory from './components/Inventory.tsx';
 import Reports from './components/Reports.tsx';
 import Settings from './components/Settings.tsx';
 import AdminDashboard from './components/AdminDashboard.tsx';
+import CustomerManagement from './components/CustomerManagement.tsx';
+import StockEntry from './components/StockEntry.tsx';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = React.useState<User | null>(() => storageService.getSession());
@@ -18,18 +20,27 @@ const App: React.FC = () => {
     config: null,
     sales: [],
     expenses: [],
-    inventory: []
+    inventory: [],
+    customers: [],
+    payments: []
   });
   const [activeView, setActiveView] = React.useState<ViewType>('dashboard');
   const [isInitializing, setIsInitializing] = React.useState(false);
 
   React.useEffect(() => {
     const initData = async () => {
-      // Only load standard business data if it's NOT the admin
       if (currentUser && !currentUser.isAdmin) {
         setIsInitializing(true);
         const userData = await storageService.loadUserData(currentUser.username);
-        setData(userData);
+        // Ensure arrays exist
+        setData({
+          ...userData,
+          customers: userData.customers || [],
+          payments: userData.payments || [],
+          sales: userData.sales || [],
+          inventory: userData.inventory || [],
+          expenses: userData.expenses || []
+        });
         setIsInitializing(false);
       }
     };
@@ -45,7 +56,9 @@ const App: React.FC = () => {
 
   const handleAddSale = (sale: Sale) => {
     let updatedInventory = [...data.inventory];
+    let updatedCustomers = [...data.customers];
     
+    // Update Stock
     if (sale.stockItemId) {
       updatedInventory = updatedInventory.map(item => {
         if (item.id === sale.stockItemId) {
@@ -58,34 +71,47 @@ const App: React.FC = () => {
       });
     }
 
-    handleUpdateData({
-      ...data,
-      sales: [...data.sales, sale],
-      inventory: updatedInventory
-    });
-  };
-
-  const handleDeleteSale = (saleId: string) => {
-    const saleToDelete = data.sales.find(s => s.id === saleId);
-    let updatedInventory = [...data.inventory];
-
-    if (saleToDelete?.stockItemId) {
-      updatedInventory = updatedInventory.map(item => {
-        if (item.id === saleToDelete.stockItemId) {
-          return {
-            ...item,
-            currentQuantity: item.currentQuantity + (saleToDelete.quantity || 0)
-          };
+    // Update Customer Balance if credit
+    if (sale.customerId && sale.isCredit) {
+      updatedCustomers = updatedCustomers.map(c => {
+        if (c.id === sale.customerId) {
+          return { ...c, currentBalance: c.currentBalance + sale.amount };
         }
-        return item;
+        return c;
       });
     }
 
     handleUpdateData({
       ...data,
-      sales: data.sales.filter(s => s.id !== saleId),
-      inventory: updatedInventory
+      sales: [...data.sales, sale],
+      inventory: updatedInventory,
+      customers: updatedCustomers
     });
+  };
+
+  const handleAddPayment = (payment: Payment) => {
+    const updatedCustomers = data.customers.map(c => {
+      if (c.id === payment.customerId) {
+        return { ...c, currentBalance: c.currentBalance - payment.amount };
+      }
+      return c;
+    });
+
+    handleUpdateData({
+      ...data,
+      payments: [...data.payments, payment],
+      customers: updatedCustomers
+    });
+  };
+
+  const handleStockIn = (itemId: string, qty: number) => {
+    const updatedInventory = data.inventory.map(item => {
+      if (item.id === itemId) {
+        return { ...item, currentQuantity: item.currentQuantity + qty };
+      }
+      return item;
+    });
+    handleUpdateData({ ...data, inventory: updatedInventory });
   };
 
   const handleLogout = () => {
@@ -94,11 +120,7 @@ const App: React.FC = () => {
   };
 
   if (!currentUser) return <Auth onLogin={setCurrentUser} />;
-
-  // Special routing for Admin
-  if (currentUser.isAdmin) {
-    return <AdminDashboard onLogout={handleLogout} />;
-  }
+  if (currentUser.isAdmin) return <AdminDashboard onLogout={handleLogout} />;
 
   if (isInitializing) {
     return (
@@ -110,6 +132,7 @@ const App: React.FC = () => {
   }
 
   const lang = data.config?.language || 'en';
+  const currency = data.config?.currency || '৳';
 
   return (
     <Layout 
@@ -120,13 +143,41 @@ const App: React.FC = () => {
       onLogout={handleLogout}
     >
       {activeView === 'dashboard' && <Dashboard data={data} onUpdateData={handleUpdateData} />}
+      {activeView === 'inventory' && (
+        <Inventory 
+          inventory={data.inventory}
+          onAddStockItem={(i) => handleUpdateData({...data, inventory: [...data.inventory, i]})}
+          onDeleteStockItem={(id) => handleUpdateData({...data, inventory: data.inventory.filter(i => i.id !== id)})}
+          currency={currency}
+          lang={lang}
+        />
+      )}
+      {activeView === 'stock-entry' && (
+        <StockEntry 
+          inventory={data.inventory}
+          onStockIn={handleStockIn}
+          lang={lang}
+          currency={currency}
+        />
+      )}
       {activeView === 'sales' && (
         <SalesEntry 
           sales={data.sales} 
           inventory={data.inventory}
+          customers={data.customers}
           onAddSale={handleAddSale} 
-          onDeleteSale={handleDeleteSale} 
-          currency={data.config?.currency || '৳'}
+          onDeleteSale={(id) => handleUpdateData({...data, sales: data.sales.filter(s => s.id !== id)})}
+          currency={currency}
+          lang={lang}
+        />
+      )}
+      {activeView === 'customers' && (
+        <CustomerManagement 
+          customers={data.customers}
+          payments={data.payments}
+          onAddCustomer={(c) => handleUpdateData({...data, customers: [...data.customers, c]})}
+          onAddPayment={handleAddPayment}
+          currency={currency}
           lang={lang}
         />
       )}
@@ -135,16 +186,7 @@ const App: React.FC = () => {
           expenses={data.expenses} 
           onAddExpense={(e) => handleUpdateData({...data, expenses: [...data.expenses, e]})}
           onDeleteExpense={(id) => handleUpdateData({...data, expenses: data.expenses.filter(e => e.id !== id)})}
-          currency={data.config?.currency || '৳'}
-          lang={lang}
-        />
-      )}
-      {activeView === 'inventory' && (
-        <Inventory 
-          inventory={data.inventory}
-          onAddStockItem={(i) => handleUpdateData({...data, inventory: [...data.inventory, i]})}
-          onDeleteStockItem={(id) => handleUpdateData({...data, inventory: data.inventory.filter(i => i.id !== id)})}
-          currency={data.config?.currency || '৳'}
+          currency={currency}
           lang={lang}
         />
       )}

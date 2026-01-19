@@ -96,11 +96,14 @@ export const storageService = {
     // Attempt cloud sync
     await storageService._saveCloud(USERS_REGISTRY_BASKET, { users: updatedUsers });
 
+    // Fix: Added missing customers and payments properties to satisfy BusinessData type (line 99 error)
     const initialData: BusinessData = {
       config: initialConfig,
       sales: [],
       expenses: [],
-      inventory: []
+      inventory: [],
+      customers: [],
+      payments: []
     };
     
     await storageService.saveUserData(cleanUsername, initialData);
@@ -164,11 +167,14 @@ export const storageService = {
     const local = localStorage.getItem(`${LOCAL_DATA_PREFIX}${cleanUsername}`);
     if (local) return JSON.parse(local);
     
+    // Fix: Added missing customers and payments properties to satisfy BusinessData type (line 167 error)
     return {
       config: null,
       sales: [],
       expenses: [],
-      inventory: []
+      inventory: [],
+      customers: [],
+      payments: []
     };
   },
 

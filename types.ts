@@ -10,12 +10,11 @@ export enum ExpenseType {
 
 export interface User {
   username: string;
-  password?: string; // Only stored in registry
+  password?: string;
   lastLogin: string;
   isAdmin?: boolean;
 }
 
-// Fixed: Added targetProfitMargin and useMarginEstimation properties to BusinessConfig
 export interface BusinessConfig {
   companyName: string;
   industry: string;
@@ -35,6 +34,22 @@ export interface StockItem {
   sellingPrice: number;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  address?: string;
+  currentBalance: number; // Positive means they owe us (Due), Negative means they have advance
+}
+
+export interface Payment {
+  id: string;
+  customerId: string;
+  amount: number;
+  date: string;
+  note?: string;
+}
+
 export interface Sale {
   id: string;
   amount: number;
@@ -43,6 +58,8 @@ export interface Sale {
   billNumber?: string;
   stockItemId?: string;
   quantity?: number;
+  customerId?: string; // Linked to customer
+  isCredit: boolean; // If true, added to customer balance
 }
 
 export interface Expense {
@@ -58,6 +75,8 @@ export interface BusinessData {
   sales: Sale[];
   expenses: Expense[];
   inventory: StockItem[];
+  customers: Customer[];
+  payments: Payment[];
 }
 
-export type ViewType = 'dashboard' | 'sales' | 'expenses' | 'inventory' | 'reports' | 'settings';
+export type ViewType = 'dashboard' | 'sales' | 'expenses' | 'inventory' | 'reports' | 'settings' | 'customers' | 'stock-entry';
